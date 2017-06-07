@@ -1,5 +1,5 @@
 Package: wildxing
-Title: An R package for the optimization of the positioning widlife crossing structures
+Title: An R package for optimal positioning of widlife crossing structures
 Version: 0.0.0.9000
 Authors@R: person("Guillaume", "Bastille-Rousseau", email = "gbr@colostate.edu", role = c("aut", "cre"))
 Description: This package provides a series of functions to characterize the importance of linear features for widlife movement and provide an algorithm to select optimal positioning of potential crossing structures.  
