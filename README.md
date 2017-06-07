@@ -22,7 +22,6 @@ The package main functions are `corriIntersects`, `hr_split`, `avg_inds` and `op
 For examples of how to use the main functions, you can also look at the vignette. 
 
 Alternatively, here is a quick example to get you going: 
-
   
     require(adehabitatLT)
     x <- c(0,0)
