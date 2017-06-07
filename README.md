@@ -33,6 +33,3 @@ Alternatively, here is a quick example to get you going:
     t4<-avg_inds(t3)
     opti1<-optim_corri(t4, var=4, n=3, nb_ind=1, weight=0.5, plot=T) #Equal weight
     opti2<-optim_corri(t4, var=4, n=3, nb_ind=1, weight=0.95, plot=T) #More importance to spatial spread
-```
-
-
