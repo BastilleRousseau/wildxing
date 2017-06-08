@@ -3,112 +3,106 @@ title: "Vignette wildxing"
 author: "Guillaume Bastille-Rousseau"
 date: "June 8, 2017"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 
 ``` {r eval=T, echo=F, message=F, warning=F}
 library(devtools)
-install.github("BastilleRousseau/wildxing")
+#install_github("BastilleRousseau/wildxing")
+library(wildxing)
 library(adehabitatLT)
-library(raster)
+#library(raster)
 library(sp)
-library(uuid)
-library(rgdal)
-library(rgeos)
-library(adehabitatMA)
-library(CircStats)
-library(MASS)
-library(boot)
-library(Rsymphony)
+#library(uuid)
+#library(rgeos)
+#library(adehabitatMA)
+#library(CircStats)
+#library(MASS)
+#library(boot)
+#library(Rsymphony)
 ```
 
-# Intersect of animal home-ranges with linear featurs   - *hr_split*
+The overall approach relies on a few simple steps: 1- Segmenting the linear features into segment of equal length, 2- Intersecting an animal trajectory with the segmented corridor, 3- Repeating for all individuals, 4- Optimizing based on population level responses. An additional function is also available that intersect home-range of an individual with the linear corridor to evaluate size of created fragments. 
 
-# Segmenting of linear corridors in smaller fragments  - *SegmentSpL*
+# 1- Segmenting of linear corridors in smaller fragments  - *SegmentSpL*
 
-# Intersect of an animal trajectory with a corridor   - *corriIntersects*
-
-# Intersect of multiple animal trajectories with a corridor and population average   - *corriIntersects_All* and *avg_inds*
-
-# Optimization of crossing structures positioning  - *corri_optim*
-
-
-The function *sim_mov* generates movement trajectories including patches and movement between patches. Movement within patches can follow an Ornstein-Uhlenbeck process (based on *simm.mou* function from package *adehabitatLT*) or two-states movement model (based on *simmData* function from package *moveHMM*). Movement between patches is following a brownian bridge movement model (based on *simm.bb* function from package *adehabitatLT*). Generated outputs are of the class *ltraj* from package *adehabitatlt*.<br> <br>
-\newline
-
-``` {r eval=T}
-# Simulating migration with two-states model 
-mig<-sim_mov(type="2states", npatches=2, ratio=2, nswitch=25, ncore=150, grph=F)
-mig
-head(ld(mig))
-plot(mig)
-
-# Simulating multi-patches movement with Ornstein-Uhlenbeck process 
-patches<-sim_mov(nswitch=25, ncore=150, ratio=5, type="OU", npatches=5, grph=T)
-
-# Simulating sedentary movement
-seden<-sim_mov(type="OU", npatches=10, spacecore=12, ratio=3, nswitch=150, ncore=20, grph=T)
-
-```
-
-
-# Converting movement to adjacency matrix  - *traj2adj*
-
-The function *traj2adj* converts a trajectory object of class *ltraj* to an adjacency matrix. This is done by overlapping a grid over the relocation data and tallying the number of transitions among each pixel. Users need to specify the grid size, which can be based on distance travelled. The function *quant* is a wrapper that allows to sample a quantile of step length distribution from a *ltraj* object. Output produced by *traj2adj* is a list containing the adjacency matrix, the grid used (raster format), and a raster indicating pixel numbers that are occupied. These rasters are used by other functions such as *adj2stack* and *clustnet*. <br> <br>
-\newline
-
-``` {r eval=T}
-# Using sedentary movement and user specific grid-size 
-adj_seden<-traj2adj(seden, res=150) #Pixel size of 150m 
-adj_seden[[1]] # Adjency matrix 
-plot(adj_seden[[2]]) #Plot grid used
-
-# Using multi-patches movement and median distance travelled 
-adj_patches<-traj2adj(patches, res=quant(patches, p=0.5)) #Grid size based on median
-dim(adj_patches[[1]]) # Size of the adjacency matrix 
-plot(adj_patches[[2]]) #Plot grid used
-plot(adj_patches[[3]]) #Plot occupied pixels 
-
-
-# Using user defined grid
-ras<-raster(nrows=10, ncols=10, xmn=0, ymn=0, xmx=6000, ymx=6000)
-adj_patches2<-traj2adj(patches, res=quant(patches, p=0.5), grid=ras) #Grid size based on median
-plot(adj_patches2[[2]]) #Crop version of the grid created 
-```
-
-
-# Calculation of network metrics  - *adj2stack*
-
-The function *adj2stack* takes the output of function *traj2adj* and calculates a series of node- and graph-level metrics. Each metric is stored as a individual raster and the output is a raster stack combining each metric. Graph-level metrics are also stored as a raster, each containing an unique value. The function *graphmet* extracts graph-level metrics. The function *val* extracts only the occupied cells (remove NA) in a raster and allows the calculation of statistics from node-level metrics. <br> <br>
+The function *SegmentSpL* was taken from http://rstudio-pubs-static.s3.amazonaws.com/10685_1f7266d60db7432486517a111c76ac8b.html. This function split a *SpatialLines* object into segments of equal length.The user can specify how the last segment is considered (separated or merged). We can generate a SpatialLines object from scratch, apply the function using different segment lengths, and plot the resulting segmentation:<br> <br>
 \newline  
 
 ``` {r eval=T}
-# Using multi-patches movement and median distance travelled 
-stck<-adj2stack(adj_patches,grph=T) #Plot the node-level metrics at the same time 
-plot(stck) #Plot also the graph-level metrics (not really useful)
-plot(stck[[3]]) #Plot only one metric (degree)
-graphmet(stck) # Extract graph-level metrics 
-cv(val(stck, 4)) #Extract coefficient of variation of node-level betweenness.  
+x <- c(0,0)
+y <- c(-6500000,-4500000)
+Spl<-SpatialLines(list(Lines(Line(cbind(x,y)), ID="a")))
+t1<-SegmentSpL(Spl, n.parts=30, merge.last=F) #Segment in 20 parts
+t2<-SegmentSpL(Spl, length=50000, merge.last=F) #Segment based on length  
+par(mfrow=c(1,2))
+plot(t1, col = rep(c(1, 2), length.out = length(t2)), axes = T)
+plot(t2, col = rep(c(1, 2), length.out = length(t2)), axes = T)
 ```
 
+# 2- Intersect of an animal trajectory with a corridor   - *corriIntersects*
 
-# Clustering of node level metrics   - *clustnet*
-The function *clustnet* applies a normal mixture model to node-level metrics in order to cluster them into separate groups (default = 2). The function takes the output of function *adj2stack* with the user specifying the metric to cluster and the number of groups. Return a list containing output of function *Mclust* from package *mclust* and a raster displaying classification. <br> <br>
-\newline
+The function *corriIntersects* intersect a trajectory object from *adehabitatLT* with a segmented corridor (the output of *SegmentSpL*). The user can specify if standardisation for the individual occured over the time or number of locations of sampling. THe former is more suitable when individuals have different frequency of location, but long gap in the data should be identified. The function include a plot option and also a separate function *plotcorri_ind*. We will intersect the corridor created earlier with an albatross individual which movement is provided by package *adehabitatLT*. Albatross (and all birds really,) are well known to be impacted by linear features!
+<br> <br>
+\newline  
 
 ``` {r eval=T}
-# Using multi-patches movement and median distance travelled 
-clust2<-clustnet(stck, id=3, nclust=2) # Clustering of degree in two groups
-clust3<-clustnet(stck, id=4, nclust=3) #Clustering of betweenness in three groups 
-summary(clust2[[1]])
-plot(clust2[[2]])
-summary(clust3[[1]])
-plot(clust3[[2]])
+data (albatross) #From package adehabitatLT
+#We are using the segmented corridor from previous step 
+t3<-corriIntersects(albatross[3], t1, plot=F) 
+par(mfrow=c(1,2))
+plot(t1, col = rep(c(1, 2), length.out = length(t2)), axes = T)
+plot(ltraj2sldf(albatross[3]), add=T)
+plotcorri_ind(t3, nb_breaks=4)
 ```
 
+# 3- Intersect of multiple animal trajectories with a corridor and population average   - *corriIntersects_All* and *avg_inds*
 
+*wildxing* also provides functions to facilitate the execution of the analysis over multiple individuals. *corriIntersects_All* is a wrapper that applies the function *corriIntersects* to all individual (not burst) of a *traj* object and produces a list contianing the analysis for each individual. *avg_inds* then takes this list and compute summary statistics at the population level. We will now perform the analysis using the same corridor as define in step 1, but applying it over all albatrosses.*plotcorri_grp* plot the output of *avg_inds* <br> <br>
+\newline  
 
+``` {r eval=T}
+data(albatross)
+t4<-corriIntersects_All(albatross, t1)
+length(t4) #6 different individuals
+t5<-avg_inds(t4)  
+head(t5@data) #View at the column stored
+par(mfrow=c(1:2))
+plotcorri_grp(t5, nb_breaks=5, var=4, main="Counts") 
+plotcorri_grp(t5, nb_breaks=5, var=5, main="Individuals") 
+```
 
+# 4- Optimization of crossing structures positioning  - *corri_optim*
 
+*optim_corri* takes the output of *avg_inds* and performs an optimization to select ideal segment for wildlife crossing structures. THe algorithm maximize the importance of a segment for crossing and the spatial spread among selected segment. The user can also specify a series of locations where segment that should be excluded or a series of locations where crossing structures will be added by default. These locations should be specified as *SpatialPoints* objects. Many additional arguments can be specifed (see help file for more details). The algorithm called the *Rsymphony* package using the *symphony* solver for linear programming. *plot_optim* plots the output of the  function. <br> <br>
+\newline  
+
+``` {r eval=T}
+ #Equal weight, minimum of 1 individual 
+ opti1<-optim_corri(t5, var=4, n=3, nb_ind=1, weight=0.5, plot=F)
+#More weight to crossing, minimum of 2 individuals 
+ opti2<-optim_corri(t5, var=4, n=3, nb_ind=3, weight=0.25, plot=F) 
+ #Equal weight,  additional point 
+Pts<-SpatialPoints(matrix(c(0,-5500000), nrow=1, ncol=2))
+ opti3<-optim_corri(t5, var=4, n=3, nb_ind=1, weight=0.5, add=Pts, plot=F) 
+  par(mfrow=c(1,3))
+ plot_optim(t5,  var=4, opti1, main="") 
+ plot_optim(t5,  var=4, opti2, main="") 
+ plot_optim(t5,  var=4, opti3, main="")  #Additional points in red
+```
+
+# 5- Intersect of animal home-ranges with linear features   - *hr_split*
+
+We also provide a function that intersects a *SpatialPolygons* object with a *SpatialLines* object and return the segmented polygons and summary statistics. The function *hr_split* will return a list with the first element being the *SpatialPolygons* object. FOr this example, we will keep the same corridor and will generate an home-range for one albatross using the mcp function from the package *adehabitatLT*. 
+
+``` {r eval=T}
+ hr<-adehabitatHR::mcp(SpatialPoints(ld(albatross[3])[,1:2]))
+plot(hr)
+plot(Spl, add=T)
+hr2<-hr_split(hr, Spl)
+plot(hr2[[1]])#Plot fragmented home-range
+hr2[2:4] #Summary statistics 
+
+```
