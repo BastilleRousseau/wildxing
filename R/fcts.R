@@ -1,23 +1,3 @@
-# REMOVE
-# ## Package creation - move to the beginning of the crossing count 
-# install.packages("devtools")
-# library("devtools")
-# devtools::install_github("klutometis/roxygen")
-# library(roxygen2)
-# setwd("C:/Users/Guillaume/OneDrive/Elephant/Analysis/Crossing")
-# create("wildxing")
-# 
-# 
-# Add Files 
-# setwd("./wildxing")
-# document()
-# 
-# Create pdf 
-# pack <- "wildxing"
-# path <- find.package(pack)
-# system(paste(shQuote(file.path(R.home("bin"), "R")),"CMD", "Rd2pdf", shQuote(path)))
-
-
 
 ####################################
 #Segmentation functions (from http://rstudio-pubs-static.s3.amazonaws.com/10685_1f7266d60db7432486517a111c76ac8b.html)
@@ -248,6 +228,8 @@ avg_inds<-function(SpLlst) {
   return(SpatialLinesDataFrame(SpLlst[[1]], data.frame(count_mean, count_sum, pct_mean_0, pct_mean, nb_ind, id), match.ID=F))
 }
 
+
+
 #' Plot of density of crossing of multiple individuals with linear features 
 #'
 #' Produce a color-coded plot of density of crossing of multiple individuals with a segmented linear features. Used to display result of function avg_inds
@@ -300,7 +282,7 @@ hr_split<-function(pol=hr, line=corri) {
   blpi <- rgeos::gBuffer(lpi, width = 0.000001)  # create a very thin polygon 
   #buffer of the intersected line 
   dpi <- rgeos::gDifference(pol, blpi) # split using gDifference 
-  area<-unlist(lapply(dpi@polygons[[1]]@Polygons, function(x) x@area))/10000
+  area<-unlist(lapply(dpi@polygons[[1]]@Polygons, function(x) x@area))/1000/1000
   pct_left<-max(area)/sum(area)*100
   nb_seg<-length(area)
   out<-list(dpi, pct_left, nb_seg, area)
@@ -382,7 +364,7 @@ match_pts<-function(pts1, pts2) {
 #'  opti1<-optim_corri(t4, var=4, n=3, nb_ind=1, weight=0.5, plot=T) #Equal weight
 #'  opti2<-optim_corri(t4, var=4, n=3, nb_ind=1, weight=0.95, plot=T) #More importance to spatial spread
 
-optim_corri<-function(corri, var=4, n=5, pct_keep=1, nb_ind=2, ln=F, rm=NULL,add=NULL, weight=0.5, plot=T, time_limit=-1, gap_limit = -1, first_feasible=F, ...) {
+optim_corri<-function(corri, var=4, n=5, pct_keep=1, nb_ind=1, ln=F, rm=NULL,add=NULL, weight=0.5, plot=T, time_limit=-1, gap_limit = -1, first_feasible=F, ...) {
   pts<-getSpatialLinesMidPoints(corri) 
   dmat<-weight*range01(as.matrix(dist(coordinates(pts))))
   diag(dmat)<-(1-weight)*range01(corri@data[,var])*2*n #Multiply by 2 bc should be twice the rest of spatial bc spatial has spread and distance 
@@ -449,7 +431,7 @@ optim_corri<-function(corri, var=4, n=5, pct_keep=1, nb_ind=2, ln=F, rm=NULL,add
   #Objective function
   obj<-c(as.numeric(dmat[upper.tri(dmat, diag=T)]),  n*(weight-(colMeans(dmat))))  #Step distance divided by 2 bc added twice, avg distance multiplied by number of locs,  
   #Linear prog solver 
-  opti<-Rsymphony::Rsymphony_solve_LP(obj, mat, dir, rhs, types="B", max=T)#, time_limit = time_limit, gap_limit=gap_limit, first_feasible=first_feasible)
+  opti<-Rsymphony::Rsymphony_solve_LP(obj, mat, dir, rhs, types="B", max=T, time_limit = time_limit, gap_limit=gap_limit, first_feasible=first_feasible)
   tt2<-tail(opti$solution, ncol(dmat))
   t1<-kept[which(tt2>0)]
   if(!is.null(add)) {t2<-kept[which(fixed>0)]}
@@ -487,3 +469,99 @@ plot_optim<-function(corri, var=4, optim, main="Default", ...){
   plot(optim[[2]], col="blue", add=T,pch=4, ps=2)
   if(length(optim)==3) {plot(optim[[3]], col="red",pch=4, add=T)}
 }
+
+
+
+
+
+###### NEW OPTIMIZATION FUNCTION 
+#' Optimization of wildlife crossing locations over a linear features using the maximum coverage location problem
+#' 
+#' The function use linear programming to optimize the location of wildlife crossing over a linear feature. The function maximise the number of individuals the selected features will assist.
+#'  The user can specify the number of crossing location desired, a coverage distance,  if some segment should be excluded, or if the location
+#'     of some crossings are already decided. 
+#' 
+#' @param corri_ls A segmented SpatialLines list returned by corriIntersects_All  
+#' @param n Number of crossing to place (default =5) in addition to fixed points (i.e. if a SpatialPoints* object is provided to the add argument)
+#' @param dist Distance used to considered a given segment as covered (ie radius)
+#' @param rm A SpatialPoints object indicating the location that most be excluded from the optimization (defaul is NULL)
+#' @param add A SpatialPoints object indicating the location where a crossing is already present, or must be place to this location. Number of points included here will be added to n to give the total number of crossing selected. 
+#' @param plot Whether a plot showing the crossing location should be returned (default=T)
+#' @param ... additional arguments that can be specify to Rsymphony_solve_lp (time_limit, gap_limit, first_feasible)
+#' @keywords SpatialPolygons SpatialLines
+#' @return A list containing the segmented polygon, the % area of the bigger segment, the number of segment, and polygon initial total area 
+#' @export
+#' @examples
+#'  require(adehabitatLT)
+#'  x <- c(0,0)
+#'  y <- c(-6500000,-4500000)
+#'  t1<-SpatialLines(list(Lines(Line(cbind(x,y)), ID="a")))
+#'  t2<-SegmentSpL(t1, n.parts=20, merge.last=F)
+#'  data (albatross) #From package adehabitatLT
+#'  t3<-corriIntersects_All(albatross, t2) 
+#'  test<-optim_mclp(t3, n=2,dist=10*1000, plot=T)
+
+
+optim_mclp<-function(corri_ls, n=5, dist=10*1000,rm=NULL,add=NULL, plot=T, time_limit=-1, gap_limit = -1, first_feasible=F, ... ) {
+t4<-avg_inds(corri_ls)  
+t5<-getSpatialLinesMidPoints(t4)
+#List of not empty segments
+seg<-which(t4$nb_ind>0)
+#Segment to exclude 
+if(!is.null(rm)) {
+  pts_rm<-match_pts(t4, rm)
+tt<-which(seg %in% pts_rm)
+if (length(tt)>0) {seg<-seg[-tt]}
+  }
+#Matrix of constraints
+fct<-function(x) { 
+  tt<-vector()
+  for (i in 1:length(seg)) {
+    tt[i]<-ifelse(sum(spDistsN1(x, t5[seg[i]])<dist)>0,1,0)
+  }
+  return(tt)
+}
+
+mat1<-matrix(unlist(lapply(corri_ls, function(x) fct(getSpatialLinesMidPoints(x)[which(x$cross==1)]))), nrow=length(corri_ls), ncol=length(seg), byrow=T)
+
+#Segment fixed 
+rw<-rep(0,ncol(mat1))
+l<-0
+if(!is.null(add)) {
+  pts_add<-match_pts(t4, add)
+  tt2<-which(seg %in% pts_add)
+  n<-n+length(tt2)
+  rw[tt2]<-1
+  l<-length(tt2)
+}
+
+mat2<-matrix(0, nrow=nrow(mat1), ncol=nrow(mat1))
+diag(mat2)<--1
+mat3<-cbind(mat1,mat2)
+#mat2<-rbind(rep(1, ncol(mat1)),rw, mat1)
+#mat3<-cbind(mat2, c(0,0, rep(-1, nrow(mat1))))
+mat4<-rbind(c(rep(1, ncol(mat1)),rep(0, nrow(mat2))),c(rw, rep(0, nrow(mat2))), mat3)
+#Other parameters
+dir<-c("==", "==", rep(">=", nrow(mat1)))
+rhs<-c(n, l, rep(0, nrow(mat1)))
+#obj<-c(colSums(mat1),0)
+obj<-c(rep(0, ncol(mat1)), rep(1, nrow(mat1)))
+  
+  
+#Optimization
+opti<-Rsymphony::Rsymphony_solve_LP(obj, mat4, dir, rhs, types="B", max=T, time_limit = time_limit, gap_limit=gap_limit, first_feasible=first_feasible)
+
+#Output results 
+out<-opti$solution
+t1<-seg[which(out[1:ncol(mat1)]>0)]
+if(!is.null(add)) {t2<-seg[which(rw>0)]}
+if(plot==T) {
+  plotcorri_grp(t4, var=5)
+  plot(t5[t1], col="blue", add=T)
+  if(!is.null(add)) {plot(t5[t2], col="red", add=T)}
+}
+if(!is.null(add)) {return(list(opti, t5[t1], t5[t2]))}
+if(is.null(add)) {return(list(opti, t5[t1]))}
+}
+
+

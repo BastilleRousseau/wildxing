@@ -4,7 +4,7 @@
 \alias{optim_corri}
 \title{Optimization of wildlife crossing locations over a linear features}
 \usage{
-optim_corri(corri, var = 4, n = 5, pct_keep = 1, nb_ind = 2, ln = F,
+optim_corri(corri, var = 4, n = 5, pct_keep = 1, nb_ind = 1, ln = F,
   rm = NULL, add = NULL, weight = 0.5, plot = T, time_limit = -1,
   gap_limit = -1, first_feasible = F, ...)
 }
