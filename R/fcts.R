@@ -472,9 +472,6 @@ plot_optim<-function(corri, var=4, optim, main="Default", ...){
 
 
 
-
-
-###### NEW OPTIMIZATION FUNCTION 
 #' Optimization of wildlife crossing locations over a linear features using the maximum coverage location problem
 #' 
 #' The function use linear programming to optimize the location of wildlife crossing over a linear feature. The function maximise the number of individuals the selected features will assist.

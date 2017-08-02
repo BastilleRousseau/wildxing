@@ -1,7 +1,7 @@
 ---
 title: "Vignette wildxing"
 author: "Guillaume Bastille-Rousseau"
-date: "June 8, 2017"
+date: "August 2, 2017"
 output:
   html_document: default
   pdf_document: default
@@ -76,12 +76,12 @@ plotcorri_grp(t5, nb_breaks=5, var=5, main="Individuals")
 
 # 4- Optimization of crossing structures positioning  - *corri_optim*
 
-*optim_corri* takes the output of *avg_inds* and performs an optimization to select ideal segment for wildlife crossing structures. THe algorithm maximize the importance of a segment for crossing and the spatial spread among selected segment. The user can also specify a series of locations where segment that should be excluded or a series of locations where crossing structures will be added by default. These locations should be specified as *SpatialPoints* objects. Many additional arguments can be specifed (see help file for more details). The algorithm called the *Rsymphony* package using the *symphony* solver for linear programming. *plot_optim* plots the output of the  function. <br> <br>
+*optim_corri* takes the output of *avg_inds* and performs an optimization to select ideal segment for wildlife crossing structures. The algorithm maximizes the importance of a segment for crossing and the spatial spread among selected segment. The user can also specify a series of locations where segment that should be excluded or a series of locations where crossing structures will be added by default. These locations should be specified as *SpatialPoints* objects. Many additional arguments can be specifed (see help file for more details). The algorithm called the *Rsymphony* package using the *symphony* solver for linear programming. *plot_optim* plots the output of the  function. <br> <br>
 \newline  
 
 ``` {r eval=T}
  #Equal weight, minimum of 1 individual 
- opti1<-optim_corri(t5, var=4, n=3, nb_ind=1, weight=0.5, plot=F)
+ opti1<-optim_mclp(t4, var=4, n=3, nb_ind=1, weight=0.5, plot=F)
 #More weight to crossing, minimum of 2 individuals 
  opti2<-optim_corri(t5, var=4, n=3, nb_ind=3, weight=0.25, plot=F) 
  #Equal weight,  additional point 
@@ -93,7 +93,20 @@ Pts<-SpatialPoints(matrix(c(0,-5500000), nrow=1, ncol=2))
  plot_optim(t5,  var=4, opti3, main="")  #Additional points in red
 ```
 
-# 5- Intersect of animal home-ranges with linear features   - *hr_split*
+# 5- Optimization of crossing structures positioning  - *corri_mclp*
+
+*optim_mclp* takes the output of *corriIntersects_All* and performs an optimization to select ideal segment for wildlife crossing structures using the maximum coverage location problem. The user can also specify a series of locations where segment that should be excluded or a series of locations where crossing structures will be added by default. These locations should be specified as *SpatialPoints* objects. Many additional arguments can be specifed (see help file for more details). The algorithm called the *Rsymphony* package using the *symphony* solver for linear programming. <br> <br>
+\newline 
+
+
+``` {r eval=T}
+#Two crossings
+ opti1<-optim_mclp(t4, n=2, dist=5*1000, plot=T)
+opti1[[1]]$objval #All 6 individuals are covered by selected crossing. 
+```
+
+
+# 6- Intersect of animal home-ranges with linear features   - *hr_split*
 
 We also provide a function that intersects a *SpatialPolygons* object with a *SpatialLines* object and return the segmented polygons and summary statistics. The function *hr_split* will return a list with the first element being the *SpatialPolygons* object. FOr this example, we will keep the same corridor and will generate an home-range for one albatross using the mcp function from the package *adehabitatLT*. 
 
