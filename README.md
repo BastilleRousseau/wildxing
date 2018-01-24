@@ -1,10 +1,13 @@
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1158705.svg)](https://doi.org/10.5281/zenodo.1158705)
+
 ## wildxing  ##
 
 **wildxing** is an R package for optimal positioning of wildlife crossing structures using GPS telemetry.
 
 This is the development area for the package `wildxing`, which provides a series of functions to analyze movement data to optimally locate wildlife crossing structures. 
 
-*References*: To be submitted. 
+*References*: Bastille-Rousseau, G., Wall, J., Douglas-Hamilton, I., Wittemyer, G. 2017. (Accepted) Optimizing wildlife crossing structures using GPS telemetry. Journal of Applied Ecology. 
 
 For questions: gbr |at| colostate.edu
 
