@@ -164,13 +164,13 @@ corriIntersects<-function(traj, corri, per_day=TRUE, plot=F) {
 #'	t2<-SegmentSpL(t1, n.parts=20, merge.last=F)
 #'	data (albatross) #From package adehabitatLT
 #'	t3<-corriIntersects(albatross[3], t2, plot=F)
-#'	plotcorri_ind(t3, nb_breaks=4, extent=raster::extent(ltraj2spdf(albatross)))
+#'	plotcorri_ind(t3, nb_breaks=5, extent=raster::extent(ltraj2spdf(albatross)))
 plotcorri_ind<-function(SpL, nb_breaks=5, extent=NULL) {
   breaks<-seq(min(SpL$pct)-1e-16, max(SpL$pct), length.out=nb_breaks)
   colors <- c("yellowgreen", "yellow", "orange", "orangered", "orangered4", "red", "red4", "maroon4","slateblue4", "navy")
   liwd<-c(1,3,3,3,3,3,3,3,3,3)
-  plot(SpL, col=colors[cut(SpL$pct, breaks)], lwd=liwd[cut(SpL$pct, breaks)])
-  if(!is.null(extent)) { plot(SpL, col=colors[cut(SpL$pct, breaks)], lwd=liwd[cut(SpL$pct, breaks)], xlim=c(extent[1], extent[2]), ylim=c(extent[3], extent[4]) )}
+  sp::plot(SpL, col=colors[cut(SpL$pct, breaks)], lwd=liwd[cut(SpL$pct, breaks)])
+  if(!is.null(extent)) { sp::plot(SpL, col=colors[cut(SpL$pct, breaks)], lwd=liwd[cut(SpL$pct, breaks)], xlim=c(extent[1], extent[2]), ylim=c(extent[3], extent[4]) )}
   legend("topleft",legend=levels(cut(SpL$pct, breaks)), col=colors[1:nb_breaks], lwd=liwd[1:nb_breaks])
 }
 
@@ -258,7 +258,7 @@ plotcorri_grp<-function(SpL, nb_breaks=5, var=4, main="Default") {
   breaks=seq(min(SpL@data[,var])-1e-16, max(SpL@data[,var]), length.out=nb_breaks)
   colors <- c("yellowgreen", "yellow", "orange", "orangered", "orangered4", "red", "red4", "maroon4","slateblue4", "navy")
   liwd<-c(1,3,3,3,3,3,3,3,3,3)
-  plot(SpL, col=colors[cut(SpL@data[,var], breaks)], lwd=liwd[cut(SpL@data[,var], breaks)], main=main)
+  sp::plot(SpL, col=colors[cut(SpL@data[,var], breaks)], lwd=liwd[cut(SpL@data[,var], breaks)], main=main)
   legend("topleft",legend=levels(cut(SpL@data[,var], breaks)), col=colors[1:nb_breaks], lwd=liwd[1:nb_breaks])
 }
 
