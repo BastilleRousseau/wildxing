@@ -135,13 +135,17 @@ corriIntersects<-function(traj, corri, per_day=TRUE, plot=F) {
   steps<-SpatialLines(apply(data2, 1, function(r) {
     Lines(list(Line(cbind(r[c(1,3)], r[c(2,4)]))), uuid::UUIDgenerate())
   }))
-  inter<-rgeos::gIntersects(corri, steps, byid=T)
-  pct<-colSums(inter)/(sum(na.omit(data)$dt)/3600/24)
-  if(per_day==F) {pct<-colSums(inter)/nrow(inter)*100}
-  out<-SpatialLinesDataFrame(corri, data.frame(count=colSums(inter), pct=pct, cross=ifelse(colSums(inter)>0, 1, 0)))
+    inter<-sf::st_intersects(sf::st_as_sf(corri), sf::st_as_sf(steps), byid=T)
+ # pct<-colSums(inter)/(sum(na.omit(data)$dt)/3600/24)
+  pct<-unlist(lapply(inter, length))/(sum(na.omit(data)$dt)/3600/24)
+    #if(per_day==F) {pct<-colSums(inter)/nrow(inter)*100}
+  if(per_day==F) {pct<-unlist(lapply(inter, length))/nrow(inter)*100}
+  #out<-SpatialLinesDataFrame(corri, data.frame(count=colSums(inter), pct=pct, cross=ifelse(colSums(inter)>0, 1, 0)))
+  out<-SpatialLinesDataFrame(corri, data.frame(count=unlist(lapply(inter, length)), pct=pct, cross=ifelse(unlist(lapply(inter, length))>0, 1, 0)), match.ID=F)
   if(plot==T) {plotcorri_ind(out, extent=raster::extent(steps))}
   return(out)
 }
+#inter<-rgeos::gIntersects(corri, steps, byid=T)
 
 #' Plot of density of crossing of an individual with a segmented linear feature
 #'
