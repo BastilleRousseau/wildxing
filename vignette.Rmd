@@ -1,7 +1,7 @@
 ---
 title: "Vignette wildxing"
 author: "Guillaume Bastille-Rousseau"
-date: "August 2, 2017"
+date: "October 18, 2019"
 output:
   html_document: default
   pdf_document: default
@@ -24,11 +24,11 @@ library(sp)
 #library(Rsymphony)
 ```
 
-The overall approach relies on a few simple steps: 1- Segmenting the linear features into segment of equal length, 2- Intersecting an animal trajectory with the segmented corridor, 3- Repeating for all individuals, 4- Optimizing based on population level responses. An additional function is also available that intersect home-range of an individual with the linear corridor to evaluate size of created fragments. 
+The overall approach relies on a few simple steps: 1- Segmenting the linear features into segment of equal length, 2- Intersecting an animal trajectory with the segmented corridor, 3- Repeating for all individuals, 4- Optimizing based on population level responses. An additional function is also available that intersect the home-range of an individual with the linear corridor to evaluate size of created fragments. 
 
 # 1- Segmenting of linear corridors in smaller fragments  - *SegmentSpL*
 
-The function *SegmentSpL* was taken from http://rstudio-pubs-static.s3.amazonaws.com/10685_1f7266d60db7432486517a111c76ac8b.html. This function split a *SpatialLines* object into segments of equal length.The user can specify how the last segment is considered (separated or merged). We can generate a SpatialLines object from scratch, apply the function using different segment lengths, and plot the resulting segmentation:<br> <br>
+The function *SegmentSpL* was adapted from http://rstudio-pubs-static.s3.amazonaws.com/10685_1f7266d60db7432486517a111c76ac8b.html. This function split a *SpatialLines* object into segments of equal length. The user can specify how the last segment is considered (separated or merged). We can generate a SpatialLines object from scratch, apply the function using different segment lengths, and plot the resulting segmentation:<br> <br>
 \newline  
 
 ``` {r eval=T}
@@ -44,7 +44,7 @@ plot(t2, col = rep(c(1, 2), length.out = length(t2)), axes = T)
 
 # 2- Intersect of an animal trajectory with a corridor   - *corriIntersects*
 
-The function *corriIntersects* intersect a trajectory object from *adehabitatLT* with a segmented corridor (the output of *SegmentSpL*). The user can specify if standardisation for the individual occured over the time or number of locations of sampling. THe former is more suitable when individuals have different frequency of location, but long gap in the data should be identified. The function include a plot option and also a separate function *plotcorri_ind*. We will intersect the corridor created earlier with an albatross individual which movement is provided by package *adehabitatLT*. Albatross (and all birds really,) are well known to be impacted by linear features!
+The function *corriIntersects* intersects a trajectory object from *adehabitatLT* with a segmented corridor (the output of *SegmentSpL*). The user can specify if standardisation for the individual occured over the time or number of locations of sampling. The former is more suitable when individuals have different frequency of location, but long gap in the data should be identified. The function include a plot option and also a separate function *plotcorri_ind*. We will intersect the corridor created earlier with an albatross individual which movement is provided by package *adehabitatLT*. Albatross (and all birds really,) are well known to be impacted by linear features!
 <br> <br>
 \newline  
 
@@ -60,7 +60,7 @@ plotcorri_ind(t3, nb_breaks=4)
 
 # 3- Intersect of multiple animal trajectories with a corridor and population average   - *corriIntersects_All* and *avg_inds*
 
-*wildxing* also provides functions to facilitate the execution of the analysis over multiple individuals. *corriIntersects_All* is a wrapper that applies the function *corriIntersects* to all individual (not burst) of a *traj* object and produces a list contianing the analysis for each individual. *avg_inds* then takes this list and compute summary statistics at the population level. We will now perform the analysis using the same corridor as define in step 1, but applying it over all albatrosses.*plotcorri_grp* plot the output of *avg_inds* <br> <br>
+*wildxing* also provides functions to facilitate the execution of the analysis over multiple individuals. *corriIntersects_All* is a wrapper that applies the function *corriIntersects* to all individual (not burst) of a *traj* object and produces a list containing the analysis for each individual. *avg_inds* then takes this list and compute summary statistics at the population level. We will now perform the analysis using the same corridor as define in step 1, but applying it over all albatrosses.*plotcorri_grp* plot the output of *avg_inds* <br> <br>
 \newline  
 
 ``` {r eval=T}
@@ -81,7 +81,7 @@ plotcorri_grp(t5, nb_breaks=5, var=5, main="Individuals")
 
 ``` {r eval=T}
  #Equal weight, minimum of 1 individual 
- opti1<-optim_mclp(t4, var=4, n=3, nb_ind=1, weight=0.5, plot=F)
+ opti1<-optim_corri(t5, var=4, n=3, nb_ind=1, weight=0.5, plot=F)
 #More weight to crossing, minimum of 2 individuals 
  opti2<-optim_corri(t5, var=4, n=3, nb_ind=3, weight=0.25, plot=F) 
  #Equal weight,  additional point 
@@ -95,7 +95,7 @@ Pts<-SpatialPoints(matrix(c(0,-5500000), nrow=1, ncol=2))
 
 # 5- Optimization of crossing structures positioning  - *corri_mclp*
 
-*optim_mclp* takes the output of *corriIntersects_All* and performs an optimization to select ideal segment for wildlife crossing structures using the maximum coverage location problem. The user can also specify a series of locations where segment that should be excluded or a series of locations where crossing structures will be added by default. These locations should be specified as *SpatialPoints* objects. Many additional arguments can be specifed (see help file for more details). The algorithm called the *Rsymphony* package using the *symphony* solver for linear programming. <br> <br>
+*optim_mclp* takes the output of *corriIntersects_All* and performs an optimization to select ideal segment for wildlife crossing structures using the maximum coverage location problem. The user can also specify a series of locations where segment should be excluded or a series of locations where crossing structures will be added by default. These locations should be specified as *SpatialPoints* objects. Many additional arguments can be specifed (see help file for more details). The algorithm called the *Rsymphony* package using the *symphony* solver for linear programming. <br> <br>
 \newline 
 
 
@@ -108,7 +108,7 @@ opti1[[1]]$objval #All 6 individuals are covered by selected crossing.
 
 # 6- Intersect of animal home-ranges with linear features   - *hr_split*
 
-We also provide a function that intersects a *SpatialPolygons* object with a *SpatialLines* object and return the segmented polygons and summary statistics. The function *hr_split* will return a list with the first element being the *SpatialPolygons* object. FOr this example, we will keep the same corridor and will generate an home-range for one albatross using the mcp function from the package *adehabitatLT*. 
+We also provide a function that intersects a *SpatialPolygons* object with a *SpatialLines* object and return the segmented polygons and summary statistics. The function *hr_split* will return a list with the first element being the *SpatialPolygons* object. For this example, we will keep the same corridor and will generate an home-range for one albatross using the mcp function from the package *adehabitatLT*. 
 
 ``` {r eval=T}
  hr<-adehabitatHR::mcp(SpatialPoints(ld(albatross[3])[,1:2]))
