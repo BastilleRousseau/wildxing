@@ -7,7 +7,7 @@
 
 This is the development area for the package `wildxing`, which provides a series of functions to analyze movement data to optimally locate wildlife crossing structures. 
 
-*References*: Bastille-Rousseau, G., Wall, J., Douglas-Hamilton, I., Wittemyer, G. 2017. (Accepted) Optimizing wildlife crossing structures using GPS telemetry. Journal of Applied Ecology. 
+*References*: Bastille-Rousseau, G., Wall, J., Douglas-Hamilton, I., Wittemyer, G. 2018. Optimizing wildlife crossing structures using GPS telemetry. Journal of Applied Ecology. 
 
 For questions: gbr |at| colostate.edu
 
