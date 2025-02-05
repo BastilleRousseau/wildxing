@@ -283,11 +283,16 @@ plotcorri_grp<-function(SpL, nb_breaks=5, var=4, main="Default") {
 #' plot(splt[[1]])
 #' splt[2:4]
 hr_split<-function(pol=hr, line=corri) {
-    lpi <- rgeos::gIntersection(pol, line) # intersect line withthe polygon
-  blpi <- rgeos::gBuffer(lpi, width = 0.000001)  # create a very thin polygon
+    #lpi <- rgeos::gIntersection(pol, line) # intersect line withthe polygon
+  #blpi <- rgeos::gBuffer(lpi, width = 0.000001)  # create a very thin polygon
+  lpi <- sf::st_intersection(sf::st_as_sf(pol), sf::st_as_sf(line)) # intersect line withthe polygon
+  blpi <- sf::st_buffer(lpi, dist = 0.000001)  # create a very thin polygon
+
   #buffer of the intersected line
-  dpi <- rgeos::gDifference(pol, blpi) # split using gDifference
-  area<-unlist(lapply(dpi@polygons[[1]]@Polygons, function(x) x@area))/1000/1000
+  #dpi <- rgeos::gDifference(pol, blpi) # split using gDifference
+  dpi <- sf::st_difference(sf::st_as_sf(pol), blpi) # split using gDifference
+ # area<-unlist(lapply(dpi@polygons[[1]]@Polygons, function(x) x@area))/1000/1000
+  area<-st_area(st_cast(dpi, "POLYGON"))
   pct_left<-max(area)/sum(area)*100
   nb_seg<-length(area)
   out<-list(dpi, pct_left, nb_seg, area)
@@ -327,8 +332,9 @@ range01 <- function(x){(x-min(x))/(max(x)-min(x))}
 #'  match_pts(t2, Pts)
 match_pts<-function(pts1, pts2) {
   if(class(pts1)=="SpatialLinesDataFrame" | class(pts1)=="SpatialLines") {pts1<-getSpatialLinesMidPoints(pts1)}
-  t1<-rgeos::gDistance(pts1, pts2, byid=T)
-  t2<-unique(unlist(apply(t1, 1, function(x) which(x==min(x))[1])))
+  #t1<-rgeos::gDistance(pts1, pts2, byid=T)
+  t1<-sf::st_distance(sf::st_as_sf(pts1), sf::st_as_sf(pts2))
+  t2<-unique(unlist(apply(t1, 2, function(x) which(x==min(x))[1])))
   return(t2)
 }
 
